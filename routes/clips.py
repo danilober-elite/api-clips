@@ -7,7 +7,7 @@ from controllers.db_manager import DatabaseManager
 from urllib.parse import unquote
 
 db_manager = DatabaseManager()
-DB_PATH = os.getenv('DB_PATH', 'clips.db')
+DB_PATH = os.getenv('DB_PATH')
 
 bp_clips = Blueprint("clips", __name__)
 
@@ -37,7 +37,7 @@ def save_clip():
     
     # Almacenar clip y obtener su id
     clip_id = db_manager.add_clip(
-        path=DB_PATH,
+        db_path=DB_PATH,
         device_serial=payload['device_serial'],
         uploaded_by=payload['uploaded_by'],
         path=payload['path'],
@@ -100,8 +100,8 @@ def get_pending_clips():
     reviewer = request.args.get('reviewer')
     tags = request.args.get('tags')
     sort = request.args.get('sort', 'created_at:desc')
-    created_before_str = request.args.get('created_before')
-    created_after_str = request.args.get('created_after')
+    created_before = request.args.get('created_before')
+    created_after = request.args.get('created_after')
     
     if page < 1 or per_page < 1 or per_page > 100:
         return jsonify({"error": "Paginación inválida"}), 400
@@ -112,8 +112,10 @@ def get_pending_clips():
 
     # Validar fechas
     try:
-        created_before = datetime.strptime(created_before_str, '%Y-%m-%d')
-        created_after = datetime.strptime(created_after_str, '%Y-%m-%d')
+        if created_before:
+            created_before = datetime.strptime(created_before, '%Y-%m-%d')
+        if created_after:
+            created_after = datetime.strptime(created_after, '%Y-%m-%d')
     except ValueError:
         return jsonify({"error": "Formato de fecha inválido."
         "Tanto 'created_before' como 'created_after' deben seguir el"
