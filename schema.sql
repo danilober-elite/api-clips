@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS clip_metrics (
     clip_id INTEGER NOT NULL UNIQUE,
     views INTEGER DEFAULT 0 CHECK (views >= 0),
     likes INTEGER DEFAULT 0 CHECK (likes >=0),
-    downloads INTEGER DEFAULT 0 CHECK (download >= 0),
+    downloads INTEGER DEFAULT 0 CHECK (downloads >= 0),
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     FOREIGN KEY(clip_id) REFERENCES clips(id) ON DELETE CASCADE

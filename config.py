@@ -1,0 +1,1 @@
+CLIPS_DB = './clips.db'
