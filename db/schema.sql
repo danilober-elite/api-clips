@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS clip_reviews (
     id INTEGER AUTOINCREMENT,
     clip_id INTEGER NOT NULL UNIQUE,
     reviewer TEXT NOT NULL, -- Podría ser una FK que referencia a una tabla de usuarios
-    comment TEXT,
+    comment TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     FOREIGN KEY(clip_id) REFERENCES clips(id) ON DELETE CASCADE

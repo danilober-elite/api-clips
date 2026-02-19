@@ -8,8 +8,8 @@ class DatabaseManager:
     def __init__(self, db_path=CLIPS_DB):
         self.db_path = str(db_path) if isinstance(db_path, Path) else db_path
 
-    def _get_connection(self):
-        conn = sqlite3.connect(self.db_path)
+    def _get_connection(self, db_path=CLIPS_DB):
+        conn = sqlite3.connect(db_path)
         conn.execute('PRAGMA foreign_keys = ON')
         return conn
     
@@ -71,9 +71,9 @@ class DatabaseManager:
         finally:
             conn.close()
 
-    def add_clip(self, device_serial, uploaded_by, path, duration):
+    def add_clip(self, db_path, device_serial, uploaded_by, path, duration):
         """..."""
-        with self._get_connection() as conn:
+        with self._get_connection(db_path) as conn:
             conn.execute("""BEGIN TRANSACTION""")
             try:
                 # Validar que device existe
@@ -172,7 +172,9 @@ class DatabaseManager:
             }
 
     def get_pending_clips(self, db_path, status='pending', device_serial=None,
-                          reviewer=None, tags=None, page=1, per_page=10):
+                          reviewer=None, tags=None, sort="created_at:desc",
+                          created_before=None, created_after=None, page=1,
+                          per_page=10):
         """..."""
         if page < 1 or per_page < 1 or per_page > 100:
             return False
@@ -181,7 +183,7 @@ class DatabaseManager:
             base_query = """
                 SELECT
                     c.id, c.device_serial, c.uploaded_by, c.path, c.duration,
-                    c.status, c.tags,
+                    c.status, c.tags, c.created_at,
                     COALESCE(cm.views) AS views,
                     COALESCE(cm.likes) AS likes,
                     COALESCE(cm.downloads) AS downloads,
@@ -206,6 +208,14 @@ class DatabaseManager:
                 where_clauses.append('c.tags LIKE ?')
                 params.append(f'%{tags}%')
 
+            if created_before:
+                where_clauses.append('c.created_at <= ?')
+                params.append(created_before)
+
+            if created_after:
+                where_clauses.append('c.created_at >= ?')
+                params.append(created_after)
+
             # Contruir query de conteo
             count_query = base_query.replace(
                 'SELECT ... FROM',
@@ -224,8 +234,14 @@ class DatabaseManager:
             pagination_query = base_query
             if where_clauses:
                 pagination_query += ' AND ' + ' AND '.join(where_clauses)
-            # Ordenación por más recientes primero
-            pagination_query += ' ORDER BY c.created_at DESC'
+            
+            # Ordenación, por defecto más recientes primero
+            if ':' in sort:
+                field, direction = sort.split(':', 1)
+                if direction.lower() == 'asc':
+                    pagination_query += f' ORDER BY c.{field} ASC'
+                else:
+                    query += f' ORDER BY c.{field} DESC'
 
             if page is not None:
                 pagination_query += " LIMIT ?"
@@ -264,7 +280,7 @@ class DatabaseManager:
                 "results": clips
             }
 
-            return results, total
+            return results
     
     def record_review(self, db_path, clip_id, reviewer, comment):
         """..."""
